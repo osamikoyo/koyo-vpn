@@ -43,6 +43,15 @@ func (d *Device) read() ([]byte, error) {
 	return buffer[:n], nil
 }
 
+func (d *Device) write(data []byte) error {
+	_, err := d.tun.Write(data)
+	if err != nil{
+		return err
+	}
+
+	return nil
+}
+
 func (d *Device) startAsyncReader(ctx context.Context, errors chan error) {
 	for {
 		select {
@@ -66,11 +75,18 @@ func (d *Device) startAsyncWriter(ctx context.Context, errors chan error) {
 			close(d.fromTun)
 			return
 		case packet := <- d.toTun:
-			
+			if err := d.write(packet);err != nil{
+				errors <- err
+			}
 		}
 	}
 }
 
 func (d *Device) StartAsync(ctx context.Context) chan error {
 	errors := make(chan error, 5)
+	
+	go d.startAsyncReader(ctx, errors)
+	go d.startAsyncWriter(ctx, errors)
+
+	return errors
 }
