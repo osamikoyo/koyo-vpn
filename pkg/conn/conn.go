@@ -6,31 +6,43 @@ import (
 )
 
 type Conn struct {
-	socket   *net.UDPConn
-	toConn   chan Packet
-	fromConn chan Packet
+	remoteSocket *net.UDPConn
+	selfSocket   *net.UDPConn
+	toConn       chan Packet
+	fromConn     chan Packet
 }
 
-func NewConn(addr string, toConn, fromConn chan Packet) (*Conn, error) {
-	udpaddr, err := net.ResolveUDPAddr("udp", addr)
+func NewConn(selfAddr, remoteAddr string, toConn, fromConn chan Packet) (*Conn, error) {
+	selfUdpaddr, err := net.ResolveUDPAddr("udp", selfAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := net.ListenUDP("udp", udpaddr)
+	selfSocket, err := net.ListenUDP("udp", selfUdpaddr)
+	if err != nil {
+		return nil, err
+	}
+
+	remoteUDPAddr, err := net.ResolveUDPAddr("udp", remoteAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	remoteSocket, err := net.DialUDP("udp", nil, remoteUDPAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Conn{
-		toConn:   toConn,
-		fromConn: fromConn,
-		socket:   conn,
+		toConn:       toConn,
+		fromConn:     fromConn,
+		selfSocket:   selfSocket,
+		remoteSocket: remoteSocket,
 	}, nil
 }
 
 func (c *Conn) write(packet *Packet) error {
-	_, err := c.socket.WriteToUDP(packet.Buf, &packet.Addr)
+	_, err := c.remoteSocket.WriteToUDP(packet.Buf, &packet.Addr)
 	if err != nil {
 		return err
 	}
@@ -40,7 +52,7 @@ func (c *Conn) write(packet *Packet) error {
 
 func (c *Conn) read() (Packet, error) {
 	buf := make([]byte, 65535)
-	n, addr, err := c.socket.ReadFromUDP(buf)
+	n, addr, err := c.selfSocket.ReadFromUDP(buf)
 	if err != nil {
 		return Packet{}, err
 	}
