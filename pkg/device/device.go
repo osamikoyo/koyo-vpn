@@ -36,7 +36,7 @@ func NewDevice(fromTun, toTun chan []byte, name string) (*Device, error) {
 func (d *Device) read() ([]byte, error) {
 	buffer := make([]byte, DefaultPacketSize)
 	n, err := d.tun.Read(buffer)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -45,7 +45,7 @@ func (d *Device) read() ([]byte, error) {
 
 func (d *Device) write(data []byte) error {
 	_, err := d.tun.Write(data)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -59,7 +59,7 @@ func (d *Device) startAsyncReader(ctx context.Context, errors chan error) {
 			return
 		default:
 			value, err := d.read()
-			if err != nil{
+			if err != nil {
 				errors <- err
 			}
 
@@ -71,11 +71,11 @@ func (d *Device) startAsyncReader(ctx context.Context, errors chan error) {
 func (d *Device) startAsyncWriter(ctx context.Context, errors chan error) {
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			close(d.fromTun)
 			return
-		case packet := <- d.toTun:
-			if err := d.write(packet);err != nil{
+		case packet := <-d.toTun:
+			if err := d.write(packet); err != nil {
 				errors <- err
 			}
 		}
@@ -84,7 +84,7 @@ func (d *Device) startAsyncWriter(ctx context.Context, errors chan error) {
 
 func (d *Device) StartAsync(ctx context.Context) chan error {
 	errors := make(chan error, 5)
-	
+
 	go d.startAsyncReader(ctx, errors)
 	go d.startAsyncWriter(ctx, errors)
 
