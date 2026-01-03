@@ -101,11 +101,7 @@ func (c *Conn) startAsyncWriter(ctx context.Context, errors chan error) {
 	}
 }
 
-func (c *Conn) StartAsync(ctx context.Context) chan error {
-	errors := make(chan error, 5)
-
+func (c *Conn) StartAsync(ctx context.Context, errors chan error) {
 	go c.startAsyncReader(ctx, errors)
 	go c.startAsyncWriter(ctx, errors)
-
-	return errors
 }
