@@ -82,11 +82,7 @@ func (d *Device) startAsyncWriter(ctx context.Context, errors chan error) {
 	}
 }
 
-func (d *Device) StartAsync(ctx context.Context) chan error {
-	errors := make(chan error, 5)
-
+func (d *Device) StartAsync(ctx context.Context, errors chan error) {
 	go d.startAsyncReader(ctx, errors)
 	go d.startAsyncWriter(ctx, errors)
-
-	return errors
 }
