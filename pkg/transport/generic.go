@@ -1,7 +1,52 @@
 package transport
 
-import "context"
+import (
+	"context"
+	"fmt"
+
+	"koyo-vpn/pkg/errors"
+	"koyo-vpn/pkg/logger"
+)
 
 type GenericTransport interface {
-	StartAsync(ctx context.Context) chan error
+	StartAsync(ctx context.Context) chan errors.Error
+}
+
+func NewTransport(
+	logger *logger.Logger,
+	side string,
+	deviceName string,
+	selfAddr string,
+	remoteAddr string,
+	selfKey string,
+	nonce []byte,
+	remoteKey ...string,
+) (GenericTransport, error) {
+	switch side {
+	case "server":
+		if len(remoteKey) == 0 {
+			return nil, fmt.Errorf("remote key is nil")
+		}
+
+		return newServerSideTransport(
+			logger,
+			deviceName,
+			selfAddr,
+			remoteAddr,
+			remoteKey[0],
+			selfKey,
+			nonce,
+		)
+	case "client":
+		return newClientSideTransport(
+			logger,
+			deviceName,
+			selfAddr,
+			remoteAddr,
+			selfKey,
+			nonce,
+		)
+	default:
+		return nil, fmt.Errorf("unsupported side: %s", side)
+	}
 }
