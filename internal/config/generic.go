@@ -7,6 +7,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Addrs struct{
+	Self string `yaml:"self"`
+	Remote string `yaml:"remote"`
+}
+
 type GenericConfig interface {
 	*ClientConfig | *ServerConfig
 }
