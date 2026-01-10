@@ -26,10 +26,12 @@ type ServerSideTransport struct {
 	device    *device.Device
 	selfAddr  *net.UDPAddr
 
+	waitAddr string
+
 	logger *logger.Logger
 }
 
-func newServerSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteAddr, remoteKey, selfKey string, nonce []byte) (*ServerSideTransport, error) {
+func newServerSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteAddr, remoteKey, selfKey string, nonce []byte, waitAddr string) (*ServerSideTransport, error) {
 	var (
 		fromTUN chan []byte
 		toTUN   chan []byte
@@ -90,9 +92,15 @@ func (t *ServerSideTransport) StartAsync(ctx context.Context) chan errors.Error 
 	errors := make(chan errors.Error)
 
 	go t.device.StartAsync(ctx, errors)
-	go t.conn.StartAsync(ctx, errors)
+
+	ready := make(chan struct{})
+
+	go t.conn.StartAsyncReader(ctx, errors, ready)
+
+	
 
 	go t.startReadingFromConn(ctx, errors)
+
 	go t.startReadingFromDevice(ctx, errors)
 
 	t.logger.Info("transport started successfully")
@@ -190,4 +198,18 @@ func (t *ServerSideTransport) routeFromConn(_ context.Context, packet *conn.Pack
 	default:
 		return fmt.Errorf("unsupported packet type: %d", packet.Type)
 	}
+}
+
+func (t *ServerSideTransport) setupRS(remoteAddr string) (*net.UDPConn, error) {
+	addr, err := net.ResolveUDPAddr("udp", remoteAddr)
+	if err != nil{
+		return nil, fmt.Errorf("failed resolve remote addr: %s: %w", remoteAddr, err)
+	}
+
+	socket, err := net.DialUDP("udp", nil, addr)
+	if err != nil{
+		return nil, fmt.Errorf("failed connect to %s: %w", remoteAddr, err)
+	}
+
+	return socket, nil
 }
