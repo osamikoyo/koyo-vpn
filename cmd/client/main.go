@@ -20,11 +20,9 @@ func main() {
 	logger.Info("setup client...")
 
 	cfg, err := getCfg(logger)
-	if err != nil{
+	if err != nil {
 		return
 	}
-
-	
 
 }
 
