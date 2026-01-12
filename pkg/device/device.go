@@ -3,6 +3,7 @@ package device
 import (
 	"context"
 	"fmt"
+	"koyo-vpn/pkg/errors"
 
 	"github.com/songgao/water"
 )
@@ -52,7 +53,7 @@ func (d *Device) write(data []byte) error {
 	return nil
 }
 
-func (d *Device) startAsyncReader(ctx context.Context, errors chan error) {
+func (d *Device) startAsyncReader(ctx context.Context, errs chan errors.Error) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -60,7 +61,7 @@ func (d *Device) startAsyncReader(ctx context.Context, errors chan error) {
 		default:
 			value, err := d.read()
 			if err != nil {
-				errors <- err
+				errs <- errors.NewError("device", err.Error(), false)
 			}
 
 			d.fromTun <- value
@@ -68,7 +69,7 @@ func (d *Device) startAsyncReader(ctx context.Context, errors chan error) {
 	}
 }
 
-func (d *Device) startAsyncWriter(ctx context.Context, errors chan error) {
+func (d *Device) startAsyncWriter(ctx context.Context, errs chan errors.Error) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -76,13 +77,13 @@ func (d *Device) startAsyncWriter(ctx context.Context, errors chan error) {
 			return
 		case packet := <-d.toTun:
 			if err := d.write(packet); err != nil {
-				errors <- err
+				errs <- errors.NewError("device", err.Error(), false)
 			}
 		}
 	}
 }
 
-func (d *Device) StartAsync(ctx context.Context, errors chan error) {
+func (d *Device) StartAsync(ctx context.Context, errors chan errors.Error) {
 	go d.startAsyncReader(ctx, errors)
 	go d.startAsyncWriter(ctx, errors)
 }
