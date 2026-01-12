@@ -7,8 +7,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Addrs struct{
-	Self string `yaml:"self"`
+type Addrs struct {
+	Self   string `yaml:"self"`
 	Remote string `yaml:"remote"`
 }
 
