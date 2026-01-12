@@ -10,8 +10,8 @@ type Error struct {
 
 func NewError(sender, message string, fatal bool) Error {
 	return Error{
-		Sender: sender,
-		Fatal: fatal,
+		Sender:  sender,
+		Fatal:   fatal,
 		Message: message,
 	}
 }
