@@ -2,10 +2,13 @@ package conn
 
 import (
 	"context"
+	"koyo-vpn/pkg/errors"
 	"net"
 )
 
 type Conn struct {
+	clientReady bool
+
 	remoteSocket *net.UDPConn
 	selfSocket   *net.UDPConn
 	toConn       chan Packet
@@ -23,21 +26,10 @@ func NewConn(selfAddr, remoteAddr string, toConn, fromConn chan Packet) (*Conn, 
 		return nil, err
 	}
 
-	remoteUDPAddr, err := net.ResolveUDPAddr("udp", remoteAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	remoteSocket, err := net.DialUDP("udp", nil, remoteUDPAddr)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Conn{
-		toConn:       toConn,
-		fromConn:     fromConn,
-		selfSocket:   selfSocket,
-		remoteSocket: remoteSocket,
+		toConn:     toConn,
+		fromConn:   fromConn,
+		selfSocket: selfSocket,
 	}, nil
 }
 
@@ -66,18 +58,23 @@ func (c *Conn) read() (Packet, error) {
 	}, nil
 }
 
-func (c *Conn) startAsyncReader(ctx context.Context, errors chan error) {
+func (c *Conn) startAsyncReader(ctx context.Context, errs chan errors.Error, ready chan struct{}, role string) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
+			if role == "server" {
+				if c.clientReady == false {
+					ready <- struct{}{}
+
+					c.clientReady = true
+				}
+			}
+
 			packet, err := c.read()
 			if err != nil {
-				select {
-				case errors <- err:
-				default:
-				}
+				errs <- errors.NewError("conn", err.Error(), false)
 			}
 
 			c.fromConn <- packet
@@ -85,23 +82,28 @@ func (c *Conn) startAsyncReader(ctx context.Context, errors chan error) {
 	}
 }
 
-func (c *Conn) startAsyncWriter(ctx context.Context, errors chan error) {
+func (c *Conn) startAsyncWriter(ctx context.Context, errs chan errors.Error) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case packet := <-c.toConn:
 			if err := c.write(&packet); err != nil {
-				select {
-				case errors <- err:
-				default:
-				}
+				errs <- errors.NewError("conn", err.Error(), false)
 			}
 		}
 	}
 }
 
-func (c *Conn) StartAsync(ctx context.Context, errors chan error) {
-	go c.startAsyncReader(ctx, errors)
-	go c.startAsyncWriter(ctx, errors)
+func (c *Conn) StartAsyncReader(ctx context.Context, errors chan errors.Error, ready chan struct{}, role string) {
+	c.startAsyncReader(ctx, errors, ready, role)
+}
+
+// remote socket
+func (c *Conn) StartAsyncWriter(ctx context.Context, errors chan errors.Error) {
+	c.startAsyncWriter(ctx, errors)
+}
+
+func (c *Conn) SetRemoteSocket(rs *net.UDPConn) {
+	c.remoteSocket = rs
 }
