@@ -81,7 +81,14 @@ func (t *ClientSideTransport) StartAsync(ctx context.Context) chan errors.Error 
 	errors := make(chan errors.Error, 15)
 
 	go t.device.StartAsync(ctx, errors)
-	go t.conn.StartAsync(ctx, errors)
+
+	t.connInbound <- conn.Packet{
+		Buf: []byte("hello"),
+		Addr: *t.selfAddr,
+		Type: 5,
+	}
+
+	go t.conn.StartAsyncReader(ctx, errors, nil, "client")
 
 	go t.startReadingFromConn(ctx, errors)
 	go t.startReadingFromDevice(ctx, errors)
