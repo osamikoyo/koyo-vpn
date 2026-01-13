@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"koyo-vpn/internal/config"
 	"koyo-vpn/internal/core"
 	"koyo-vpn/pkg/logger"
 	"os"
+	"os/signal"
+
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -24,6 +28,18 @@ func main() {
 		return
 	}
 
+	core, err := core.SetupClientCore(cfg, logger)
+	if err != nil {
+		logger.Error("failed setup client core",
+			zap.Error(err))
+	}
+
+	logger.Info("starting client")
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	core.Start(ctx)
 }
 
 func getCfg(logger *logger.Logger) (*config.ClientConfig, error) {
