@@ -53,6 +53,10 @@ func getCfg(logger *logger.Logger) (*config.ClientConfig, error) {
 
 	cfg, err := config.NewConfig[*config.ClientConfig]("client", path)
 	if err != nil {
+		logger.Error("failed get config",
+			zap.String("path", path),
+			zap.Error(err))
+
 		return nil, err
 	}
 
