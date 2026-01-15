@@ -1,0 +1,37 @@
+version: 3
+
+vars:
+  CLIENT_CMD: "cmd/client/main.go"
+  SERVER_CMD: "cmd/server/main.go"
+  CLIENT_OUTPUT: "bin/client"
+  SERVER_OUTPUT: "bin/server"
+  SERVER_CONFIG_PATH: "config/server.yaml"
+  CLIENT_CONFIG_PATH: "config/client.yaml"
+  SERVER_LOGFILE_PATH: "logs/server.yaml"
+  CLIENT_LOGFILE_PATH: "logs/client.yaml"
+
+tasks:
+  deps:
+    cmds:
+      - go mod download
+  build-server:
+    cmds:
+      - go build -o {{.SERVER_OUTPUT}} {{.SERVER_CMD}}
+  build-client:
+    cmds:
+      - go build -o {{.CLIENT_OUTPUT}} {{.CLIENT_CMD}}
+  build:
+    deps: [build-server, build-client]
+    cmds:
+      - echo "successfully built"
+  run-server:
+    deps: [build-server]
+    cmds:
+      - ./{{.SERVER_OUTPUT}} --config {{.SERVER_CONFIG_PATH}} --logs {{.SERVER_LOGFILE_PATH}}
+  run-client:
+    deps: [build-client]
+    cmds:
+      - ./{{.CLIENT_OUTPUT}} --config {{.CLIENT_CONFIG_PATH}} --logs {{.CLIENT_LOGFILE_PATH}}
+
+      
+  
