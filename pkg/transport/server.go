@@ -31,7 +31,7 @@ type ServerSideTransport struct {
 	logger *logger.Logger
 }
 
-func newServerSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteAddr, remoteKey, selfKey string, nonce []byte, waitAddr string) (*ServerSideTransport, error) {
+func newServerSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteAddr, remoteKey, selfKey string, nonce []byte) (*ServerSideTransport, error) {
 	var (
 		fromTUN chan []byte
 		toTUN   chan []byte
@@ -85,27 +85,35 @@ func newServerSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteA
 		deviceInbound:  toTUN,
 		deviceOutbound: fromTUN,
 		handshake:      handshake,
+		waitAddr: remoteAddr,
 	}, nil
 }
 
 func (t *ServerSideTransport) StartAsync(ctx context.Context) chan errors.Error {
-	errors := make(chan errors.Error)
+	errs := make(chan errors.Error)
 
-	go t.device.StartAsync(ctx, errors)
+	go t.device.StartAsync(ctx, errs)
 
 	ready := make(chan struct{})
 
-	go t.conn.StartAsyncReader(ctx, errors, ready)
+	go t.conn.StartAsyncReader(ctx, errs, ready, "server")
 
-	
+	rs, err := t.setupRS()
+	if err != nil{
+		errs <- errors.NewError("transport", fmt.Sprintf("failed setup remote rs: %v", err), true)
+	}
 
-	go t.startReadingFromConn(ctx, errors)
+	t.conn.SetRemoteSocket(rs)
 
-	go t.startReadingFromDevice(ctx, errors)
+	go t.conn.StartAsyncWriter(ctx, errs)
+
+	go t.startReadingFromConn(ctx, errs)
+
+	go t.startReadingFromDevice(ctx, errs)
 
 	t.logger.Info("transport started successfully")
 
-	return errors
+	return errs
 }
 
 func (t *ServerSideTransport) startReadingFromDevice(ctx context.Context, errs chan errors.Error) {
@@ -200,15 +208,15 @@ func (t *ServerSideTransport) routeFromConn(_ context.Context, packet *conn.Pack
 	}
 }
 
-func (t *ServerSideTransport) setupRS(remoteAddr string) (*net.UDPConn, error) {
-	addr, err := net.ResolveUDPAddr("udp", remoteAddr)
-	if err != nil{
-		return nil, fmt.Errorf("failed resolve remote addr: %s: %w", remoteAddr, err)
+func (t *ServerSideTransport) setupRS() (*net.UDPConn, error) {
+	addr, err := net.ResolveUDPAddr("udp", t.waitAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed resolve remote addr: %s: %w", t.waitAddr, err)
 	}
 
 	socket, err := net.DialUDP("udp", nil, addr)
-	if err != nil{
-		return nil, fmt.Errorf("failed connect to %s: %w", remoteAddr, err)
+	if err != nil {
+		return nil, fmt.Errorf("failed connect to %s: %w", t.waitAddr, err)
 	}
 
 	return socket, nil
