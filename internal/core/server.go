@@ -24,10 +24,9 @@ func SetupServerCore(cfg *config.ServerConfig, logger *logger.Logger) (*ServerCo
 		logger,
 		"server",
 		cfg.DeviceName,
-		cfg.SelfUDPAddr,
-		cfg.RemoteUDPAddr,
+		cfg.Addrs.Self,
+		cfg.Addrs.Remote,
 		cfg.Keys.Self,
-		[]byte(cfg.Nonce),
 		cfg.Keys.Remote,
 	)
 	if err != nil {
@@ -43,7 +42,7 @@ func SetupServerCore(cfg *config.ServerConfig, logger *logger.Logger) (*ServerCo
 	return &ServerCore{
 		transport: transport,
 		logger:    logger,
-		selfAddr:  cfg.SelfUDPAddr,
+		selfAddr:  cfg.Addrs.Self,
 	}, nil
 }
 
