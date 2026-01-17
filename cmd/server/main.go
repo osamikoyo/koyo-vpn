@@ -12,10 +12,12 @@ import (
 )
 
 func main() {
+	logFile, cfgPath := getPaths()
+
 	logger.Init(logger.Config{
 		AppName:   "vpn-server",
 		AddCaller: false,
-		LogFile:   "vpn-server.log",
+		LogFile:   logFile,
 		LogLevel:  "debug",
 	})
 
@@ -23,18 +25,18 @@ func main() {
 
 	logger.Info("setup server...")
 
-	cfg, err := getCfg(logger)
+	cfg, err := getCfg(logger, cfgPath)
 	if err != nil {
 		return
 	}
 
-	core, err := core.SetupClientCore(cfg, logger)
+	core, err := core.SetupServerCore(cfg, logger)
 	if err != nil {
-		logger.Error("failed setup client core",
+		logger.Error("failed setup server core",
 			zap.Error(err))
 	}
 
-	logger.Info("starting client")
+	logger.Info("starting server")
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -42,16 +44,8 @@ func main() {
 	core.Start(ctx)
 }
 
-func getCfg(logger *logger.Logger) (*config.ClientConfig, error) {
-	path := "client.yaml"
-
-	for i, arg := range os.Args {
-		if arg == "--config" {
-			path = os.Args[i+1]
-		}
-	}
-
-	cfg, err := config.NewConfig[*config.ClientConfig]("client", path)
+func getCfg(logger *logger.Logger, path string) (*config.ServerConfig, error) {
+	cfg, err := config.NewConfig[*config.ServerConfig]("client", path)
 	if err != nil {
 		logger.Error("failed get config",
 			zap.String("path", path),
@@ -61,4 +55,22 @@ func getCfg(logger *logger.Logger) (*config.ClientConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+func getPaths() (string, string) {
+	logFile := "vpn-server.log"
+	cfgpath := "config.yaml"
+
+	for i, arg := range os.Args {
+		if arg == "--log-file" {
+			logFile = os.Args[i+1]
+		}
+
+		if arg == "--config" {
+			cfgpath = os.Args[i+1]
+		}
+	}
+
+
+	return logFile, cfgpath
 }
