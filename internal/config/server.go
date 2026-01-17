@@ -6,11 +6,9 @@ type Keys struct {
 }
 
 type ServerConfig struct {
-	SelfUDPAddr   string `yaml:"self_udp_addr"`
-	RemoteUDPAddr string `yaml:"remote_udp_addr"`
-
 	Nonce string `yaml:"nonce"`
-
 	DeviceName string `yaml:"device_nane"`
+	
+	Addrs Addrs `yaml:"addr"`
 	Keys       Keys   `yaml:"keys"`
 }
