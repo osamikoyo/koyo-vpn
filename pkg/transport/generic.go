@@ -19,7 +19,6 @@ func NewTransport(
 	selfAddr string,
 	remoteAddr string,
 	selfKey string,
-	nonce []byte,
 	remoteKey ...string,
 ) (GenericTransport, error) {
 	switch side {
@@ -35,7 +34,6 @@ func NewTransport(
 			remoteAddr,
 			remoteKey[0],
 			selfKey,
-			nonce,
 		)
 	case "client":
 		return newClientSideTransport(
@@ -44,7 +42,6 @@ func NewTransport(
 			selfAddr,
 			remoteAddr,
 			selfKey,
-			nonce,
 		)
 	default:
 		return nil, fmt.Errorf("unsupported side: %s", side)
