@@ -19,16 +19,17 @@ type ClientSideTransport struct {
 	deviceInbound  chan []byte
 	deviceOutbound chan []byte
 
-	nonce    []byte
 	conn     *conn.Conn
 	device   *device.Device
 	selfAddr *net.UDPAddr
 	key      []byte
 
+	nonceCounter uint64
+
 	logger *logger.Logger
 }
 
-func newClientSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteAddr, selfKey string, nonce []byte) (*ClientSideTransport, error) {
+func newClientSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteAddr, selfKey string) (*ClientSideTransport, error) {
 	var (
 		fromTUN chan []byte
 		toTUN   chan []byte
@@ -129,7 +130,9 @@ func (t *ClientSideTransport) routeFromDevice(_ context.Context, buf []byte) err
 		return fmt.Errorf("empty chifer key")
 	}
 
-	encryptedbuf, err := chifer.Encrypt(buf, t.key, t.nonce)
+	t.nonceCounter++
+
+	encryptedbuf, err := chifer.Encrypt(buf, t.key, t.nonceCounter)
 	if err != nil {
 		t.logger.Error("failed encrypt",
 			zap.ByteString("buf", buf),
@@ -165,7 +168,7 @@ func (t *ClientSideTransport) routeFromConn(_ context.Context, packet *conn.Pack
 			return fmt.Errorf("empty chifer key")
 		}
 
-		decryptedBuf, err := chifer.Decrypt(packet.Buf, []byte(t.key), t.nonce)
+		decryptedBuf, err := chifer.Decrypt(packet.Buf, []byte(t.key))
 		if err != nil {
 			return err
 		}
