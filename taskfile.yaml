@@ -27,11 +27,11 @@ tasks:
   run-server:
     deps: [build-server]
     cmds:
-      - ./{{.SERVER_OUTPUT}} --config {{.SERVER_CONFIG_PATH}} --logs {{.SERVER_LOGFILE_PATH}}
+      - ./{{.SERVER_OUTPUT}} --config {{.SERVER_CONFIG_PATH}} --log-file {{.SERVER_LOGFILE_PATH}}
   run-client:
     deps: [build-client]
     cmds:
-      - ./{{.CLIENT_OUTPUT}} --config {{.CLIENT_CONFIG_PATH}} --logs {{.CLIENT_LOGFILE_PATH}}
+      - ./{{.CLIENT_OUTPUT}} --config {{.CLIENT_CONFIG_PATH}} --log-file {{.CLIENT_LOGFILE_PATH}}
 
       
   
