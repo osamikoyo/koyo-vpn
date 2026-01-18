@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"os/signal"
+
 	"koyo-vpn/internal/config"
 	"koyo-vpn/internal/core"
 	"koyo-vpn/pkg/logger"
-	"os"
-	"os/signal"
 
 	"go.uber.org/zap"
 )
@@ -30,6 +32,9 @@ func main() {
 		return
 	}
 
+	logger.Info("config loaded",
+		zap.Any("config", cfg))
+
 	core, err := core.SetupServerCore(cfg, logger)
 	if err != nil {
 		logger.Error("failed setup server core",
@@ -45,13 +50,20 @@ func main() {
 }
 
 func getCfg(logger *logger.Logger, path string) (*config.ServerConfig, error) {
-	cfg, err := config.NewConfig[*config.ServerConfig]("client", path)
+	cfg, err := config.NewConfig[*config.ServerConfig]("server", path)
 	if err != nil {
 		logger.Error("failed get config",
 			zap.String("path", path),
 			zap.Error(err))
 
 		return nil, err
+	}
+
+	if cfg == nil {
+		logger.Error("empty config",
+			zap.String("path", path))
+
+		return nil, fmt.Errorf("empty config")
 	}
 
 	return cfg, nil
@@ -70,7 +82,6 @@ func getPaths() (string, string) {
 			cfgpath = os.Args[i+1]
 		}
 	}
-
 
 	return logFile, cfgpath
 }
