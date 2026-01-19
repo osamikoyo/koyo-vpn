@@ -19,7 +19,7 @@ type ClientCore struct {
 }
 
 func SetupClientCore(cfg *config.ClientConfig, logger *logger.Logger) (*ClientCore, error) {
-	transport, err := transport.NewTransport(logger, "client", cfg.DeviceName, cfg.Addrs.Self, cfg.Addrs.Remote, cfg.SelfKey, []byte(cfg.Nonce))
+	transport, err := transport.NewTransport(logger, "client", cfg.DeviceName, cfg.Addrs.Self, cfg.Addrs.Remote, cfg.SelfKey)
 	if err != nil {
 		logger.Error("failed setup transport",
 			zap.Any("cfg", cfg),
