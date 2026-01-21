@@ -20,18 +20,18 @@ type ServerSideTransport struct {
 	deviceInbound  chan []byte
 	deviceOutbound chan []byte
 
-	nonce     []byte
 	handshake *handshake.HandShakeRouter
 	conn      *conn.Conn
 	device    *device.Device
 	selfAddr  *net.UDPAddr
 
-	waitAddr string
+	nonceCounter uint64
+	waitAddr     string
 
 	logger *logger.Logger
 }
 
-func newServerSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteAddr, remoteKey, selfKey string, nonce []byte) (*ServerSideTransport, error) {
+func newServerSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteAddr, remoteKey, selfKey string) (*ServerSideTransport, error) {
 	var (
 		fromTUN chan []byte
 		toTUN   chan []byte
@@ -85,7 +85,7 @@ func newServerSideTransport(logger *logger.Logger, deviceName, selfAddr, remoteA
 		deviceInbound:  toTUN,
 		deviceOutbound: fromTUN,
 		handshake:      handshake,
-		waitAddr: remoteAddr,
+		waitAddr:       remoteAddr,
 	}, nil
 }
 
@@ -99,7 +99,7 @@ func (t *ServerSideTransport) StartAsync(ctx context.Context) chan errors.Error 
 	go t.conn.StartAsyncReader(ctx, errs, ready, "server")
 
 	rs, err := t.setupRS()
-	if err != nil{
+	if err != nil {
 		errs <- errors.NewError("transport", fmt.Sprintf("failed setup remote rs: %v", err), true)
 	}
 
@@ -149,7 +149,9 @@ func (t *ServerSideTransport) routeFromDevice(_ context.Context, buf []byte) err
 
 	key := t.handshake.GetChiferKey()
 
-	encryptedbuf, err := chifer.Encrypt(buf, key, t.nonce)
+	t.nonceCounter++
+
+	encryptedbuf, err := chifer.Encrypt(buf, key, t.nonceCounter)
 	if err != nil {
 		t.logger.Error("failed encrypt buffer",
 			zap.Error(err))
@@ -195,7 +197,7 @@ func (t *ServerSideTransport) routeFromConn(_ context.Context, packet *conn.Pack
 
 		key := t.handshake.GetChiferKey()
 
-		decryptedBuf, err := chifer.Decrypt(packet.Buf, key, t.nonce)
+		decryptedBuf, err := chifer.Decrypt(packet.Buf, key)
 		if err != nil {
 			return err
 		}
