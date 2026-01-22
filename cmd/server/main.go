@@ -39,9 +39,12 @@ func main() {
 	if err != nil {
 		logger.Error("failed setup server core",
 			zap.Error(err))
+
+		return
 	}
 
-	logger.Info("starting server")
+	logger.Info("starting server",
+		zap.Any("cfg", cfg))
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
