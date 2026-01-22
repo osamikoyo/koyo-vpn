@@ -9,6 +9,7 @@ vars:
   CLIENT_CONFIG_PATH: "config/client.yaml"
   SERVER_LOGFILE_PATH: "logs/server.yaml"
   CLIENT_LOGFILE_PATH: "logs/client.yaml"
+  SERVER_DEVICE_NAME: "tun0"
 
 tasks:
   deps:
@@ -32,6 +33,13 @@ tasks:
     deps: [build-client]
     cmds:
       - ./{{.CLIENT_OUTPUT}} --config {{.CLIENT_CONFIG_PATH}} --log-file {{.CLIENT_LOGFILE_PATH}}
+  create-s-tun:
+    cmds:
+      - sudo ip tuntap add dev {{.SERVER_DEVICE_NAME}} mode tun user $(whoami)
+  run-s-tun:
+    cmds:
+      - sudo ip link set {{.SERVER_DEVICE_NAME}} up
 
-      
+  
+
   
