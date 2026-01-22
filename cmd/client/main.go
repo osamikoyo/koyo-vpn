@@ -34,7 +34,8 @@ func main() {
 			zap.Error(err))
 	}
 
-	logger.Info("starting client")
+	logger.Info("starting client",
+		zap.Any("cfg", cfg))
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
