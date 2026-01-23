@@ -1,0 +1,7 @@
+device_name : "tun0"
+addrs:
+    self: "localhost:9090"
+    remote: "localhost:9091"
+keys:
+    self: "very_secret_key_for_server"
+    remote: "very_secret_key_for_client"
