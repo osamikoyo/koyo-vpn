@@ -84,7 +84,7 @@ func (t *ClientSideTransport) StartAsync(ctx context.Context) chan errors.Error 
 	go t.device.StartAsync(ctx, errors)
 
 	t.connInbound <- conn.Packet{
-		Buf: []byte("hello"),
+		Buf:  []byte("hello"),
 		Addr: *t.selfAddr,
 		Type: 5,
 	}
